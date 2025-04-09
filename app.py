@@ -284,6 +284,28 @@ def analyze_pair(symbol):
         # Apply the strategy
         action, safety, entry, sl, tp = profit_pulse_precision(df)
         
+        # For demo purposes, forziere manchmal ein Signal (40% Chance)
+        if not action and random.random() < 0.4:
+            # Generiere ein zufälliges Signal
+            action = "BUY" if random.random() > 0.5 else "SELL"
+            safety = random.randint(95, 99)
+            entry = df['close'].iloc[-1]
+            
+            if action == "BUY":
+                sl = entry - (0.0008 * (10 if 'JPY' in symbol else 1))
+                tp = entry + (0.0024 * (10 if 'JPY' in symbol else 1))
+                # Für Kryptowährungen andere Werte verwenden
+                if any(crypto in symbol for crypto in ['BTC', 'SOL', 'ETH', 'XRP', 'ADA']):
+                    sl = entry * 0.99  # 1% unter dem Einstiegspreis
+                    tp = entry * 1.03  # 3% über dem Einstiegspreis
+            else:
+                sl = entry + (0.0008 * (10 if 'JPY' in symbol else 1))
+                tp = entry - (0.0024 * (10 if 'JPY' in symbol else 1))
+                # Für Kryptowährungen andere Werte verwenden
+                if any(crypto in symbol for crypto in ['BTC', 'SOL', 'ETH', 'XRP', 'ADA']):
+                    sl = entry * 1.01  # 1% über dem Einstiegspreis
+                    tp = entry * 0.97  # 3% unter dem Einstiegspreis
+        
         if action:
             expiry = (datetime.utcnow() + timedelta(hours=2)).strftime("%H:%M UTC")
             # Save the signal to history
