@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pyperclip
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
@@ -10,6 +9,13 @@ import requests
 from strategy import profit_pulse_precision
 from utils import format_price, save_signal, get_signals_history, get_mt5_connection_status
 from market_data import get_current_forex_price
+
+# Pyperclip importieren, falls verfügbar (optional)
+try:
+    import pyperclip
+    PYPERCLIP_AVAILABLE = True
+except ImportError:
+    PYPERCLIP_AVAILABLE = False
 
 # App configuration
 st.set_page_config(
@@ -464,12 +470,16 @@ GÜLTIG BIS: {expiry}
         
         # Copy button for the signal
         if st.button("Signal kopieren", key=f"copy_{symbol}"):
-            try:
-                pyperclip.copy(signal_text)
-                st.success("Signal kopiert!")
-            except Exception as e:
-                st.error(f"Fehler beim Kopieren: {e}")
-                st.info("Bitte wähle den Signal-Text manuell aus und kopiere ihn.")
+            if PYPERCLIP_AVAILABLE:
+                try:
+                    pyperclip.copy(signal_text)
+                    st.success("Signal kopiert!")
+                except Exception as e:
+                    st.error(f"Fehler beim Kopieren: {e}")
+                    st.info("Bitte wähle den Signal-Text manuell aus und kopiere ihn.")
+            else:
+                st.info("Automatisches Kopieren nicht verfügbar. Bitte wähle den folgenden Text manuell aus und kopiere ihn:")
+                st.code(signal_text, language=None)
 
 # Main app layout
 tab1, tab2, tab3 = st.tabs(["Aktuelle Signale", "Signalverlauf", "MT5 Verbindung"])
