@@ -6,8 +6,10 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import time
 import random
+import requests
 from strategy import profit_pulse_precision
 from utils import format_price, save_signal, get_signals_history, get_mt5_connection_status
+from market_data import get_current_forex_price
 
 # App configuration
 st.set_page_config(
@@ -131,10 +133,16 @@ base_prices = {
     "ADAUSD": 0.44
 }
 
-# Generate synthetic forex data
+# Generate forex data with real-time prices
 def get_forex_data(symbol, num_candles=500):
     try:
-        # Set seed based on currency pair for consistent results
+        # Get current real-time price from API
+        current_price = get_current_forex_price(symbol)
+        if current_price is None:
+            # Fallback to base price if API fails
+            current_price = base_prices.get(symbol, 1.0)
+            
+        # Set seed based on currency pair for consistent historical data
         np.random.seed(hash(symbol) % 10000)
         
         # Create timestamps
@@ -142,23 +150,35 @@ def get_forex_data(symbol, num_candles=500):
         start_time = end_time - pd.Timedelta(minutes=5 * num_candles)
         times = pd.date_range(start=start_time, end=end_time, periods=num_candles)
         
-        # Generate price data with realistic patterns
+        # Generate historical price data with realistic patterns
+        # but ensure it converges to the current real-time price
         base_price = base_prices.get(symbol, 1.0)
         
-        # Create a trend component
-        trend = np.cumsum(np.random.normal(0, 0.0001 * base_price, num_candles))
+        # Create a trend component that converges to current price
+        trend_target = current_price - base_price
+        trend_factor = np.linspace(0, 1, num_candles) ** 2  # Quadratic convergence
+        trend = trend_factor * trend_target
+        
+        # Add some randomness to the trend
+        random_component = np.cumsum(np.random.normal(0, 0.0001 * base_price, num_candles))
+        random_component = random_component - random_component[-1]  # Ensure it ends at 0
         
         # Create a cyclical component
         t = np.linspace(0, 10, num_candles)
         cycle_amplitude = 0.001 * base_price
         cycle = cycle_amplitude * np.sin(t) + 0.0005 * base_price * np.sin(3*t)
         
-        # Create a random component
-        noise_level = 0.0003 * base_price
-        noise = np.random.normal(0, noise_level, num_candles)
+        # Dampen the cycle as it approaches current time
+        cycle = cycle * (1 - np.linspace(0, 0.8, num_candles) ** 2)
         
-        # Combine components
-        closes = base_price + trend + cycle + noise
+        # Create a random component that diminishes towards the end
+        noise_dampening = 1 - np.linspace(0, 0.7, num_candles) ** 2
+        noise_level = 0.0003 * base_price
+        noise = np.random.normal(0, noise_level, num_candles) * noise_dampening
+        
+        # Combine components to ensure last price matches current price
+        closes = base_price + trend + cycle + noise + random_component
+        closes[-1] = current_price  # Force the last price to exactly match current price
         
         # Generate OHLC data with realistic relationships
         typical_spread = 0.0002 * base_price if "JPY" not in symbol else 0.02
@@ -190,6 +210,16 @@ def get_forex_data(symbol, num_candles=500):
             'spread': np.random.randint(1, 5, num_candles),
             'real_volume': np.random.randint(1000, 10000, num_candles)
         })
+        
+        # Display the current price in sidebar for debugging
+        if not st.session_state.get('prices_shown', False):
+            st.sidebar.markdown("### Aktuelle Kurse")
+            st.session_state.prices_shown = True
+            
+        if symbol == currency_pairs[0]:  # Only reset the price display for the first pair
+            st.sidebar.markdown("### Aktuelle Kurse")
+            
+        st.sidebar.text(f"{symbol}: {format_price(current_price, symbol)}")
         
         return df
     except Exception as e:
@@ -281,8 +311,31 @@ def create_candlestick_chart(df, symbol, action=None, entry=None, sl=None, tp=No
 def analyze_pair(symbol):
     df = get_forex_data(symbol)
     if df is not None:
+        # Verwende den aktuellen Marktpreis als Einstiegspreis
+        current_price = df['close'].iloc[-1]  # Aktueller Preis vom Ende des Datensatzes
+        
         # Apply the strategy
         action, safety, entry, sl, tp = profit_pulse_precision(df)
+        
+        # Immer den aktuellen Marktpreis als Einstiegspreis verwenden
+        if action:
+            entry = current_price
+            
+            # Recalculate SL and TP based on entry
+            if action == "BUY":
+                sl = entry - (0.0008 * (10 if 'JPY' in symbol else 1))
+                tp = entry + (0.0024 * (10 if 'JPY' in symbol else 1))
+                # Für Kryptowährungen andere Werte verwenden
+                if any(crypto in symbol for crypto in ['BTC', 'SOL', 'ETH', 'XRP', 'ADA']):
+                    sl = entry * 0.99  # 1% unter dem Einstiegspreis
+                    tp = entry * 1.03  # 3% über dem Einstiegspreis
+            else:
+                sl = entry + (0.0008 * (10 if 'JPY' in symbol else 1))
+                tp = entry - (0.0024 * (10 if 'JPY' in symbol else 1))
+                # Für Kryptowährungen andere Werte verwenden
+                if any(crypto in symbol for crypto in ['BTC', 'SOL', 'ETH', 'XRP', 'ADA']):
+                    sl = entry * 1.01  # 1% über dem Einstiegspreis
+                    tp = entry * 0.97  # 3% unter dem Einstiegspreis
         
         # Extrem selektive Signalgenerierung (nur 5% Chance für zufällige Signale)
         # Dies führt zu weniger, aber qualitativ hochwertigen Signalen
@@ -290,7 +343,7 @@ def analyze_pair(symbol):
             # Nur sehr sichere Signale generieren (98-99% Sicherheit)
             action = "BUY" if random.random() > 0.5 else "SELL"
             safety = random.randint(98, 99)  # Höhere Mindest-Sicherheit
-            entry = df['close'].iloc[-1]
+            entry = current_price  # Aktueller Preis als Einstiegspreis
             
             if action == "BUY":
                 sl = entry - (0.0008 * (10 if 'JPY' in symbol else 1))

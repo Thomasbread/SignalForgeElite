@@ -934,6 +934,7 @@ dependencies = [
     { name = "pandas" },
     { name = "plotly" },
     { name = "pyperclip" },
+    { name = "requests" },
     { name = "streamlit" },
     { name = "trafilatura" },
 ]
@@ -945,6 +946,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "plotly", specifier = ">=6.0.1" },
     { name = "pyperclip", specifier = ">=1.9.0" },
+    { name = "requests", specifier = ">=2.32.3" },
     { name = "streamlit", specifier = ">=1.44.1" },
     { name = "trafilatura", specifier = ">=2.0.0" },
 ]
