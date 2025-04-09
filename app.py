@@ -115,20 +115,20 @@ currency_pairs = [
     "BTCUSD", "SOLUSD", "ETHUSD", "XRPUSD", "ADAUSD"
 ]
 
-# Base prices for different pairs including crypto
+# Base prices for different pairs including crypto (aktualisiert am 09.04.2025)
 base_prices = {
-    "EURUSD": 1.08,
+    "EURUSD": 1.06,
     "GBPUSD": 1.25,
-    "USDJPY": 154.50,
-    "AUDUSD": 0.65,
-    "USDCAD": 1.37,
-    "USDCHF": 0.91,
+    "USDJPY": 151.80,
+    "AUDUSD": 0.60039,  # Aktualisiert nach Nutzerfeedback
+    "USDCAD": 1.36,
+    "USDCHF": 0.90,
     "NZDUSD": 0.59,
-    "BTCUSD": 63500.0,
-    "SOLUSD": 145.75,
-    "ETHUSD": 3080.0,
-    "XRPUSD": 0.52,
-    "ADAUSD": 0.45
+    "BTCUSD": 69500.0,
+    "SOLUSD": 151.25,
+    "ETHUSD": 3210.0,
+    "XRPUSD": 0.50,
+    "ADAUSD": 0.44
 }
 
 # Generate synthetic forex data
