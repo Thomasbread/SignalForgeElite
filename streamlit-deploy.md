@@ -34,18 +34,19 @@ Wenn Sie den Fehler "installer returned a non-zero exit code" erhalten:
    - Entfernen Sie die .streamlit/config.toml und .streamlit/secrets.toml Dateien aus Ihrem Repository
    - Deployen Sie erneut - Streamlit Cloud wählt dann automatisch die Standard-Port-Konfiguration
 
-2. **Methode 2: requirements.txt anpassen**
-   - Erstellen Sie eine einfache requirements.txt mit nur den essentiellen Paketen:
+2. **Methode 2: requirements.txt verwenden**
+   - Benennen Sie die Datei `requirements-streamlit.txt` in `requirements.txt` um, bevor Sie sie auf GitHub hochladen:
      ```
-     matplotlib
-     numpy
-     pandas
-     plotly
-     requests
-     streamlit==1.32.0
-     trafilatura
+     matplotlib==3.7.1
+     numpy==1.24.3
+     pandas==2.0.3
+     plotly==5.15.0
+     requests==2.31.0
+     streamlit==1.24.0
+     trafilatura==1.6.0
      ```
-   - Entfernen Sie pyperclip aus der Liste
+   - Diese Versionen sind in Streamlit Cloud besser kompatibel
+   - pyperclip ist bewusst weggelassen, um Installationsprobleme zu vermeiden
 
 3. **Methode 3: Andere Python-Version wählen**
    - Versuchen Sie es mit Python 3.10 statt 3.11 in den Advanced Settings
