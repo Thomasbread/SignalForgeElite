@@ -1,0 +1,2 @@
+# Dies ist eine Liste von system-dependencies für Streamlit Cloud Deployment
+# Leere Datei, da keine speziellen System-Abhängigkeiten benötigt werden
